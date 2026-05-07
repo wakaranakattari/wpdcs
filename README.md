@@ -7,7 +7,7 @@
 ### File always starting with a cap:
 
 ```perl
-# @file       script.pl
+## @file       script.pl
 ## @author    <email@example.com>
 ## @infofile  <Information for file...>
 ## @license   GPL 3.0
