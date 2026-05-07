@@ -39,8 +39,8 @@ name
 
 ## Full examples:
 
-(Calculator)[github.com/wakaranakattari/wpdcs/examples/calc.pl]
-(Authentication)[github.com/wakaranakattari/wpdcs/examples/user-auth.pl]
+[Calculator](github.com/wakaranakattari/wpdcs/examples/calc.pl)
+[Authentication](github.com/wakaranakattari/wpdcs/examples/user-auth.pl)
 
 ## Template for new scripts
 ```perl
