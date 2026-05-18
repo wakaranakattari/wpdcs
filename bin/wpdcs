@@ -1,0 +1,119 @@
+#!/usr/bin/env perl
+## @file    <bin/wpdcs>
+## @author  <wakaranakattari@gmail.com>
+## @info    <main entry point for WPDCS toolchain>
+## @license <GPL 3.0>
+## @version <1.0-SNAP>
+## @since   <2026-05-17>
+
+use strict;
+use warnings;
+use v5.35;
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+
+use WPDCS::Parser;
+use WPDCS::Checker;
+use WPDCS::Generator;
+use WPDCS::Linter;
+
+my $command = shift @ARGV || die "Usage: wpdcs <parse|check|init|gen|lint|format|docs> <file>\n";
+
+## @secinfo <parse command>
+if ($command eq 'parse')
+{
+  my $file = shift @ARGV;
+  die "Usage: wpdcs parse <file>\n" unless $file;
+
+  my $parser = WPDCS::Parser->new();
+  my $tags   = $parser->parse_file($file);
+  $parser->print_tags($tags);
+}
+
+## @secinfo <check command>
+elsif ($command eq 'check')
+{
+  my $file = shift @ARGV;
+  die "Usage: wpdcs check <file>\n" unless $file;
+
+  my $checker = WPDCS::Checker->new();
+  my $result  = $checker->check_file($file);
+  $checker->print_result($result);
+}
+
+## @secinfo <init command>
+elsif ($command eq 'init')
+{
+  my $dir = shift @ARGV || '.';
+  my $gen = WPDCS::Generator->new();
+  $gen->init($dir);
+}
+
+## @secinfo <gen command>
+elsif ($command eq 'gen')
+{
+  my $subcommand = shift @ARGV;
+  my $file       = shift @ARGV;
+
+  die "Usage: wpdcs gen <header|funcinfo|section> <file> [args...]\n" unless $subcommand && $file;
+
+  my $gen = WPDCS::Generator->new();
+
+  if ($subcommand eq 'header')
+  {
+    $gen->generate_header($file);
+  }
+  elsif ($subcommand eq 'funcinfo')
+  {
+    $gen->generate_funcinfo($file);
+  }
+  else
+  {
+    die "Unknown gen subcommand: $subcommand. Try: header, funcinfo\n";
+  }
+}
+
+## @secinfo <lint command>
+elsif ($command eq 'lint')
+{
+  my $file = shift @ARGV;
+  die "Usage: wpdcs lint <file>\n" unless $file;
+
+  my $linter = WPDCS::Linter->new();
+  exit $linter->lint($file);
+}
+
+## @secinfo <format command>
+elsif ($command eq 'format')
+{
+  my $file = shift @ARGV;
+  die "Usage: wpdcs format <file>\n" unless $file;
+
+  my $linter = WPDCS::Linter->new();
+  $linter->format($file);
+}
+
+## @secinfo <docs command>
+elsif ($command eq 'docs')
+{
+  my $file = shift @ARGV;
+  die "Usage: wpdcs docs <file>\n" unless $file;
+
+  my $gen = WPDCS::Generator->new();
+  $gen->generate_docs($file);
+}
+
+## @secinfo <create command>
+elsif ($command eq 'create')
+{
+  my $project_name = shift @ARGV || die "Usage: wpdcs create <project_name>\n";
+  my $gen = WPDCS::Generator->new();
+  $gen->create_project($project_name);
+}
+
+else
+{
+  say "Unknown command: $command";
+  say "Available: parse, check, init, gen, lint, format, docs, create";
+  exit 1;
+}
