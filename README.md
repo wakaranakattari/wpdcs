@@ -1,86 +1,113 @@
-# WPDCS - My Perl Style Guide
+# WPDCS - Code Style & Documentation Toolkit
 
-**Wakaranakattari Perl Docs and Code Style** - My personal standart for writing Perl code
+**Wakaranakattari Perl Docs and Code Style** - A tool to enforce consistent code style and generate documentation.
 
-## Main rules
+Supports **Perl**, **Clojure** and **ClojureScript**.
 
-### File always starting with a cap:
+---
 
-```perl
-## @file       script.pl
-## @author    <email@example.com>
-## @infofile  <Information for file...>
-## @license   GPL 3.0
-## @version   1.0-SNAP
-## @docs      <path to docs>
-## @since     YYYY-MM-DD
+## Installation
+
+```bash
+git clone https://github.com/wakaranakattari/wpdcs
+cd wpdcs
+make install-user
+export PATH="$HOME/.local/bin:$PATH"
 ```
 
-### Functions are written vertically:
-```perl
-sub
-name
-{
-  my     ($param1, $param2) = @_;
-  return $result;
-}
+### System-wide install (requires sudo):
+```bash
+sudo make install
 ```
 
-### Each function has documentation:
-```perl
-## @funcinfo <function info>
-## @excode < example code />
+## Quick Start
+```bash
+# Create a new project
+wpdcs create my-app
+cd my-app
+
+# Add header to file
+wpdcs gen header src/main.pl
+
+# Check style
+wpdcs lint src/main.pl
+
+# Generate documentation
+wpdcs docs src/main.pl
 ```
 
-### Code sections are separated:
+## Commands
+| Command | Description |
+| :--- | :--- |
+| `wpdcs parse <file>` | Show all WPDCS tags |
+| `wpdcs check <file>` | Validate required tags (file, author, info) |
+| `wpdcs init [dir]` | Create `.wpdcsrc` and `examples/` folder |
+| `wpdcs create <name>` | Create new project with cargo-like structure |
+| `wpdcs gen header <file>` | Add WPDCS header to file |
+| `wpdcs gen funcinfo <file>` | Add `@funcinfo` before functions |
+| `wpdcs lint <file>` | Check style (whitespace, tabs, tags) |
+| `wpdcs format <file>` | Auto-format code |
+| `wpdcs docs <file>` | Generate Markdown documentation |
+| `wpdcs version` | Show version |
+| `wpdcs help` | Show this help |
+
+## Supported Languages
+| Language | Extension | Comment symbol |
+| :--- | :--- | :--- |
+| Perl | `.pl`, `.pm` | `##` |
+| Clojure / ClojureScript | `.clj`, `.cljs` | `;;` |
+
+## Example
+### Input (main.pl)
 ```perl
-## @secinfo <section info>
-```
-
-## Full examples:
-
-[Calculator](examples/calc.pl)
-[Authentication](examples/user-auth.pl)
-
-## Template for new scripts
-```perl
-## @file     script.pl
-## @author   <your@email.com>
-## @infofile <description>
-## @license  GPL 3.0
-## @version  1.0-SNAP
-## @since    2026-05-07
+## @file    <main.pl>
+## @author  <dev@example.com>
+## @info    <main entry point>
 
 use strict;
 use warnings;
 use v5.35;
 
-## @funcinfo <function description>
-## @excode < example />
-sub 
-function_name
-{
-  my     ($arg) = @_;
-  return $arg;
+sub greet {
+    say "Hello";
 }
-
-## @secinfo <main>
-say function_name("test");
 ```
 
-## How to use
+### After wpdcs gen funcinfo main.pl
+```perl
+## @file    <main.pl>
+## @author  <dev@example.com>
+## @info    <main entry point>
+
+use strict;
+use warnings;
+use v5.35;
+
+## @funcinfo <TODO: describe greet>
+sub greet {
+    say "Hello";
+}
+```
+
+### After wpdcs docs main.pl
+#### Generates main.md:
+```perl
+# Documentation for main.pl
+
+## Function
+
+**Description:** TODO: describe greet
+```
+
+## Philosophy
+- Consistency - Same style across all your projects
+- Portability - Same tags work for Perl, Clojure, and D (planned)
+- Documentation as code - Docs live right next to functions
+- Automation - Generate docs, add headers, check style with one command
+
+## Uninstall
 ```bash
-
-# 1. Create project directory
-mkdir my-perl-project
-cd my-perl-project
-
-# 2. Copy templates for new script
-cp /path/to/wpdcs/templates/template.pl myscript.pl
-
-# 3. Edit to suit your needs
-vim/nvim/emacs/code myscript.pl
-
-# 4. See examples if necessary
-less /path/to/wpdcs/examples/calc.pl
+sudo make uninstall          # system-wide
+rm -rf ~/.local/bin/wpdcs    # user install
+rm -rf ~/.local/lib/WPDCS
 ```
