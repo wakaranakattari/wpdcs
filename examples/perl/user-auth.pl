@@ -35,8 +35,11 @@ get_welcome
 }
 
 ## @secinfo <Test authentication>
-if (check_auth("wakaranakattari", "123456789")) {
-  say get_welcome("wakaranakattari");
-} else {
+if (check_auth    ("wakaranakattari", "123456789"))
+{
+  say get_welcome ("wakaranakattari");
+} 
+else
+{
   say "Access denied";
 }

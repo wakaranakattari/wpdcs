@@ -1,19 +1,18 @@
-## @file      calc.pl
+## @file      <calc.pl>
 ## @author    <wakaranakattari@gmail.com>
-## @infofile  <Basic calculator implementation>
-## @license   GPL 3.0
-## @version   1.0-SNAP
+## @info      <Basic calculator implementation>
+## @license   <GPL 3.0>
+## @version   <1.0-SNAP>
 ## @docs      </example/path/>
-## @since     2026-05-07
+## @since     <2026-05-07>
 
 use strict;
 use warnings;
-
 use v5.35;
 
 ## @funcinfo <Addition of two numbers>
 ## @excode   < add (10, 5) => 15 />
-sub 
+sub
 add
 {
   my     ($num1, $num2) = @_;
@@ -22,7 +21,7 @@ add
 
 ## @funcinfo <Subtraction of two numbers>
 ## @excode   < subs (10, 5) => 5 />
-sub 
+sub
 subs
 {
   my     ($num1, $num2) = @_;
@@ -31,7 +30,7 @@ subs
 
 ## @funcinfo <Multiplication of two numbers>
 ## @excode   < mul (10, 5) => 50 />
-sub 
+sub
 mul
 {
   my     ($num1, $num2) = @_;
