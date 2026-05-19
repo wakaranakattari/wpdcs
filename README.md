@@ -1,4 +1,4 @@
-# WPDCS - Code Style & Documentation Toolkit
+# WPDCS - Code Style & Documentation Toolchain
 
 **Wakaranakattari Perl Docs and Code Style** - A tool to enforce consistent code style and generate documentation.
 
