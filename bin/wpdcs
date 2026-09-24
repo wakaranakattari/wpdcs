@@ -45,6 +45,12 @@ my %HELP = (
   gen     => "usage: wpdcs gen <header|funcinfo|test> <path...> [--staged]\n"
     . "  header: prepend file header. funcinfo: insert doc skeletons.\n"
     . "  test <file>: generate .t skeleton from \@ex tags.",
+  hook    => "usage: wpdcs hook install\n"
+    . "  install git pre-commit hook (lint + check staged files).",
+  completion => "usage: wpdcs completion bash|zsh\n"
+    . "  print shell completion script.",
+  changelog => "usage: wpdcs changelog <path...> [--out FILE]\n"
+    . "  build changelog.md from \@since/\@version/\@deprecated tags.",
   version => "usage: wpdcs version\n  print version.",
   help    => "usage: wpdcs help [command]\n  show help.",
 );
@@ -71,11 +77,14 @@ commands:
   docs <path...>           generate markdown documentation
   test <path...>           run @ex doctests (perl only)
   stats <path...>          coverage + tag statistics
+  changelog <path...>      build changelog.md from tags
   init [dir]               create .wpdcsrc, examples/, t/, docs/
   create <name>            create new project
   gen header <path...>     add wpdcs header to file(s)
   gen funcinfo <path...>   add @funcinfo + @param + @return skeletons
   gen test <file>          generate .t test skeleton from @ex tags
+  hook install             install git pre-commit hook
+  completion bash|zsh      print shell completion
   version                  show version
   help [command]           show this help or per-command help
 
@@ -83,6 +92,7 @@ flags:
   --json                   machine-readable json output (parse/check/lint/stats/test)
   --staged                 operate on git staged files only (ignores paths)
   --strict                 fail on unknown tags (check)
+  --out DIR                output directory (docs, changelog)
 EOF
 }
 
@@ -120,6 +130,7 @@ sub staged_files {
 my $JSON   = 0;
 my $STAGED = 0;
 my $STRICT = 0;
+my $OUT;
 @ARGV = grep { $_ ne '' } @ARGV;
 {
   my @rest;
@@ -138,7 +149,12 @@ my $STRICT = 0;
     {
       $STRICT = 1;
     }
-        else
+    elsif ($ARGV[$i] eq '--out' && defined $ARGV[$i + 1])
+    {
+      $OUT = $ARGV[$i + 1];
+      $i++;
+    }
+    else
     {
       push @rest, $ARGV[$i];
     }
@@ -308,7 +324,17 @@ elsif ($command eq 'docs')
   my @files = expand_paths(@ARGV);
 
   my $gen = WPDCS::Generator->new();
-  $gen->generate_docs($_) for @files;
+  if (defined $OUT)
+  {
+    require File::Path;
+    File::Path::make_path($OUT) unless -d $OUT;
+    $gen->generate_docs($_, $OUT) for @files;
+    $gen->generate_index(\@files, $OUT);
+  }
+  else
+  {
+    $gen->generate_docs($_) for @files;
+  }
 }
 
 ## @secinfo <test command: doctests>
@@ -408,11 +434,114 @@ elsif ($command eq 'stats')
   }
 }
 
+## @secinfo <changelog command>
+elsif ($command eq 'changelog')
+{
+  my @files = expand_paths(@ARGV);
 
+  my $parser = WPDCS::Parser->new();
+  my %by_version;
+  for my $file (@files)
+  {
+    my $tags = $parser->parse_file($file);
+    my ($ver) = map { $_->{value} } grep { $_->{tag} eq 'version' } @$tags;
+    $ver //= 'Unreleased';
+    for my $t (@$tags)
+    {
+      if ($t->{tag} eq 'deprecated')
+      {
+        push @{$by_version{$ver}{deprecated}}, "$file: $t->{value}";
+      }
+      elsif ($t->{tag} eq 'funcinfo' && $file =~ /\.(pl|pm)$/)
+      {
+        ## @info <new functions land under their file version>
+        $by_version{$ver}{added} //= [];
+      }
+    }
+    my ($since) = map { $_->{value} } grep { $_->{tag} eq 'since' } @$tags;
+    if (defined $since)
+    {
+      push @{$by_version{$ver}{files}}, "$file (since $since)";
+    }
+  }
 
+  my $md = "# Changelog\n\nBuilt from wpdcs \@version/\@since/\@deprecated tags.\n\n";
+  for my $ver (sort keys %by_version)
+  {
+    $md .= "## $ver\n\n";
+    if ($by_version{$ver}{files})
+    {
+      $md .= "### Files\n\n";
+      $md .= "- $_\n" for @{$by_version{$ver}{files}};
+      $md .= "\n";
+    }
+    if ($by_version{$ver}{deprecated})
+    {
+      $md .= "### Deprecated\n\n";
+      $md .= "- $_\n" for @{$by_version{$ver}{deprecated}};
+      $md .= "\n";
+    }
+  }
 
+  if (defined $OUT)
+  {
+    WPDCS::Core->write_file($OUT, $md);
+    say "wrote changelog: $OUT";
+  }
+  else
+  {
+    print $md;
+  }
+}
 
+## @secinfo <hook command>
+elsif ($command eq 'hook')
+{
+  my $sub = shift @ARGV || '';
+  die "$HELP{hook}\n" unless $sub eq 'install';
+  my $gitdir = `git rev-parse --git-dir 2>/dev/null`;
+  die "not a git repo (git rev-parse failed)\n" if $? != 0;
+  chomp $gitdir;
+  my $hook = "$gitdir/hooks/pre-commit";
+  open my $fh, '>', $hook or die "Cannot write $hook: $!";
+  print $fh <<'EOF';
+#!/bin/sh
+# Installed by wpdcs hook install. Lint + check staged files.
+wpdcs lint --staged || exit 1
+wpdcs check --staged || exit 1
+EOF
+  close $fh;
+  chmod 0755, $hook;
+  say "installed pre-commit hook: $hook";
+}
 
+## @secinfo <completion command>
+elsif ($command eq 'completion')
+{
+  my $shell = shift @ARGV || '';
+  die "$HELP{completion}\n" unless $shell =~ /^(bash|zsh)$/;
+  my $cmds = 'parse check lint format docs test stats changelog init create gen hook completion version help';
+  if ($shell eq 'bash')
+  {
+    print <<EOF;
+# wpdcs bash completion (generated by wpdcs completion bash)
+_wpdcs_complete() {
+  local cur=\${COMP_WORDS[COMP_CWORD]}
+  COMPREPLY=(\$(compgen -W "$cmds" -- "\$cur"));
+}
+complete -F _wpdcs_complete wpdcs
+EOF
+  }
+  else
+  {
+    print <<EOF;
+#compdef wpdcs
+# wpdcs zsh completion (generated by wpdcs completion zsh)
+_wpdcs() { _arguments "1:command:($cmds)" }
+_wpdcs
+EOF
+  }
+}
 
 ## @secinfo <create command>
 elsif ($command eq 'create')
