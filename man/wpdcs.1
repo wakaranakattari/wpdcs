@@ -1,0 +1,70 @@
+.TH WPDCS 1 "September 2026" "WPDCS 2.0.0" "User Commands"
+.SH NAME
+wpdcs \- code style, doctests and documentation toolchain for Perl and Clojure
+.SH SYNOPSIS
+.B wpdcs
+[\fB\-\-json\fR] \fICOMMAND\fR [\fIARGS\fR...]
+.SH DESCRIPTION
+WPDCS enforces a comment-tag standard (\fB##\fR for Perl, \fB;;\fR for Clojure),
+runs executable examples as doctests, and generates Markdown documentation.
+Paths may be files or directories (scanned recursively, minus
+.B exclude_dirs
+from \fI.wpdcsrc\fR).
+.SH COMMANDS
+.TP
+.B parse \fIPATH\fR...
+Print all WPDCS tags with line numbers.
+.TP
+.B check \fIPATH\fR...
+Validate required header tags; report missing, malformed, duplicate and unknown tags.
+.TP
+.B lint \fIPATH\fR...
+Check style: trailing whitespace, tabs, CRLF, line length, tag format, EOF newline.
+.TP
+.B format \fIPATH\fR...
+Rewrite files in place: strip trailing whitespace, expand tabs, ensure EOF newline.
+.TP
+.B docs \fIPATH\fR...
+Generate Markdown documentation next to each source file.
+.TP
+.B test \fIPATH\fR...
+Run \fB@ex\fR examples as doctests (Perl only; Clojure files are reported and skipped).
+.TP
+.B stats \fIPATH\fR...
+Show tag counts, documentation coverage and doctest totals per file.
+.TP
+.B init [\fIDIR\fR]
+Create \fI.wpdcsrc\fR, \fIexamples/\fR, \fIt/\fR, \fIdocs/\fR.
+.TP
+.B create \fINAME\fR
+Create a new cargo-like project skeleton.
+.TP
+.B gen header \fIPATH\fR...
+Prepend the WPDCS file header (preserves \fB#!\fR shebang).
+.TP
+.B gen funcinfo \fIPATH\fR...
+Insert \fB@funcinfo\fR + \fB@param\fR + \fB@return\fR skeletons before undocumented functions.
+.TP
+.B gen test \fIFILE\fR
+Generate a \fI.t\fR skeleton from the file's \fB@ex\fR doctests.
+.TP
+.B version
+Print the version.
+.TP
+.B help [\fICOMMAND\fR]
+Show help, optionally for one command.
+.SH OPTIONS
+.TP
+.B \-\-json
+Machine-readable JSON output (parse, check, lint, test, stats, version).
+.SH FILES
+.TP
+.I .wpdcsrc
+Project configuration: language, required_tags, exclude_dirs. See \fI.wpdcsrc.example\fR.
+.SH EXIT STATUS
+Zero on success; non-zero when any file fails the requested check.
+.SH "SEE ALSO"
+.BR perl (1),
+.BR prove (1)
+.SH AUTHOR
+wakaranakattari <wakaranakattari@gmail.com>. License GPL-3.0-or-later.
