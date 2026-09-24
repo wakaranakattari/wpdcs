@@ -8,7 +8,7 @@ package WPDCS::Core;
 
 use strict;
 use warnings;
-use v5.35;
+use v5.34;
 
 ## @funcinfo <read file and return array of lines>
 ## @param <file: str - path to read>

@@ -8,7 +8,7 @@
 
 use strict;
 use warnings;
-use v5.35;
+use v5.34;
 
 ## @funcinfo <addition of two numbers>
 ## @param <num1: num - first operand>

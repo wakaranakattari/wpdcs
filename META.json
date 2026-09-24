@@ -22,7 +22,7 @@
    "prereqs" : {
       "runtime" : {
          "requires" : {
-            "perl" : "5.035"
+            "perl" : "5.034"
          }
       },
       "test" : {

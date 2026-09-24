@@ -8,7 +8,7 @@
 
 use strict;
 use warnings;
-use v5.35;
+use v5.34;
 
 ## @info <demo credentials only, dont use in production>
 my $VALID_USER     = "wakaranakattari";

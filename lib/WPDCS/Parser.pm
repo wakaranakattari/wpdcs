@@ -8,7 +8,7 @@ package WPDCS::Parser;
 
 use strict;
 use warnings;
-use v5.35;
+use v5.34;
 use WPDCS::Core;
 
 ## @funcinfo <list of known wpdcs tags>

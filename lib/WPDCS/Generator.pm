@@ -8,7 +8,7 @@ package WPDCS::Generator;
 
 use strict;
 use warnings;
-use v5.35;
+use v5.34;
 use POSIX qw(strftime);
 use File::Path qw(make_path);
 use WPDCS::Core;
@@ -637,7 +637,7 @@ create_project
 
 use strict;
 use warnings;
-use v5.35;
+use v5.34;
 
 ## \@funcinfo <main function>
 sub main {

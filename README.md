@@ -2,7 +2,7 @@
 
 ![version](https://img.shields.io/badge/version-2.0.0-blue)
 ![license](https://img.shields.io/badge/license-GPL--3.0--or--later-green)
-![perl](https://img.shields.io/badge/perl-%3E%3D5.35-orange)
+![perl](https://img.shields.io/badge/perl-%3E%3D5.34-orange)
 ![ci](https://github.com/wakaranakattari/wpdcs/actions/workflows/ci.yml/badge.svg)
 
 **Wakaranakattari Perl Docs and Code Style** — one binary to enforce comment-tag style,
@@ -11,7 +11,7 @@ run `@ex` examples as doctests, and generate markdown docs. Supports **Perl**
 plus `Makefile` targets.
 
 No CPAN dependencies: only core modules (`JSON::PP`, `File::Path`, `POSIX`,
-`Test::More`) and perl `>= 5.35`. Git is optional (needed for `--staged` and hooks).
+`Test::More`) and perl `>= 5.34`. Git is optional (needed for `--staged` and hooks).
 
 ---
 

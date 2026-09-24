@@ -8,7 +8,7 @@ package WPDCS::Doctest;
 
 use strict;
 use warnings;
-use v5.35;
+use v5.34;
 use WPDCS::Parser;
 use WPDCS::Core;
 

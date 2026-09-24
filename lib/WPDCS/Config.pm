@@ -8,7 +8,7 @@ package WPDCS::Config;
 
 use strict;
 use warnings;
-use v5.35;
+use v5.34;
 
 ## @funcinfo <constructor with defaults>
 ## @param <overrides: hash - optional config overrides>

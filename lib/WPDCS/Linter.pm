@@ -8,7 +8,7 @@ package WPDCS::Linter;
 
 use strict;
 use warnings;
-use v5.35;
+use v5.34;
 use WPDCS::Core;
 use WPDCS::Parser;
 
