@@ -1,9 +1,9 @@
 #!/usr/bin/env perl
 ## @file    <bin/wpdcs>
 ## @author  <wakaranakattari@gmail.com>
-## @info    <main entry point for WPDCS toolchain>
-## @license <GPL 3.0>
-## @version <1.0-SNAP>
+## @info    <main entry point for wpdcs toolchain>
+## @license <gpl 3.0>
+## @version <2.0.0>
 ## @since   <2026-05-17>
 
 use strict;
@@ -16,29 +16,224 @@ use WPDCS::Parser;
 use WPDCS::Checker;
 use WPDCS::Generator;
 use WPDCS::Linter;
+use WPDCS::Doctest;
+use WPDCS::Core;
+use WPDCS::Config;
+use JSON::PP ();
 
-my $command = shift @ARGV || die "Usage: wpdcs <parse|check|init|gen|lint|format|docs> <file>\n";
+our $VERSION = '2.0.0';
+
+my %HELP = (
+  parse   => "usage: wpdcs [--json] parse <path...> [--staged]\n"
+    . "  Show all wpdcs tags (files or dirs, recursive).",
+  check   => "usage: wpdcs [--json] check <path...> [--staged] [--strict]\n"
+    . "  Validate required tags; report problems.",
+  lint    => "usage: wpdcs lint <path...> [--staged]\n"
+    . "  Check style: whitespace, tabs, CRLF, length, tags, EOF newline.",
+  format  => "usage: wpdcs format <path...> [--staged]\n"
+    . "  Rewrite files in place.",
+  docs    => "usage: wpdcs docs <path...> [--out DIR]\n"
+    . "  generate markdown docs; --out DIR collects them plus index.md.",
+  test    => "usage: wpdcs [--json] test <path...> [--staged]\n"
+    . "  run \@ex doctests (perl only).",
+  stats   => "usage: wpdcs [--json] stats <path...> [--staged]\n"
+    . "  Coverage and tag statistics.",
+  init    => "usage: wpdcs init [dir]\n"
+    . "  Create .wpdcsrc, examples/, t/, docs/.",
+  create  => "usage: wpdcs create <name>\n"
+    . "  create a new cargo-like project.",
+  gen     => "usage: wpdcs gen <header|funcinfo|test> <path...> [--staged]\n"
+    . "  header: prepend file header. funcinfo: insert doc skeletons.\n"
+    . "  test <file>: generate .t skeleton from \@ex tags.",
+  version => "usage: wpdcs version\n  print version.",
+  help    => "usage: wpdcs help [command]\n  show help.",
+);
+
+## @funcinfo <print usage>
+## @param <topic: str - optional command name>
+## @return <void>
+## @ex <print_usage() => prints help>
+sub print_usage {
+  my ($topic) = @_;
+  if (defined $topic && exists $HELP{$topic})
+  {
+    print "$HELP{$topic}\n";
+    return;
+  }
+  print <<'EOF';
+usage: wpdcs [--json] <command> [args]
+
+commands:
+  parse <path...>          show all wpdcs tags (files or dirs, recursive)
+  check <path...>          validate required tags
+  lint <path...>           check style (trailing ws, tabs, crlf, length, tags)
+  format <path...>         auto-format code
+  docs <path...>           generate markdown documentation
+  test <path...>           run @ex doctests (perl only)
+  stats <path...>          coverage + tag statistics
+  init [dir]               create .wpdcsrc, examples/, t/, docs/
+  create <name>            create new project
+  gen header <path...>     add wpdcs header to file(s)
+  gen funcinfo <path...>   add @funcinfo + @param + @return skeletons
+  gen test <file>          generate .t test skeleton from @ex tags
+  version                  show version
+  help [command]           show this help or per-command help
+
+flags:
+  --json                   machine-readable json output (parse/check/lint/stats/test)
+  --staged                 operate on git staged files only (ignores paths)
+  --strict                 fail on unknown tags (check)
+EOF
+}
+
+## @funcinfo <emit json to stdout>
+## @param <data: any - encodable structure>
+## @return <void>
+## @ex <emit_json({ok => 1}) => prints json>
+sub emit_json {
+  my ($data) = @_;
+  my $json = JSON::PP->new->utf8->canonical->pretty;
+  print $json->encode($data);
+}
+
+## @funcinfo <load project config for cli defaults>
+## @return <config instance>
+## @ex <cli_config() => bless {max_length => 120}>
+sub cli_config {
+  my $found = WPDCS::Config->find_file('.');
+  return defined $found ? WPDCS::Config->load($found) : WPDCS::Config->new();
+}
+
+## @funcinfo <list files staged in git>
+## @return <array of paths>
+## @throws <dies outside a git repo or when git fails>
+## @ex <staged_files() => ["lib/a.pm"]>
+sub staged_files {
+  my $out = `git diff --cached --name-only --diff-filter=ACM 2>&1`;
+  die "git staged failed (not a git repo?): $out\n" if $? != 0;
+  my @files = grep { $_ ne '' } split /\n/, $out;
+  @files = grep { -f $_ } @files;
+  @files = grep { /\.(pl|pm|t|clj|cljs|cljc)$/ || /(?:^|\/)(Makefile|GNUmakefile)$/ } @files;
+  return @files;
+}
+
+my $JSON   = 0;
+my $STAGED = 0;
+my $STRICT = 0;
+@ARGV = grep { $_ ne '' } @ARGV;
+{
+  my @rest;
+  my $i = 0;
+  while ($i < @ARGV)
+  {
+    if ($ARGV[$i] eq '--json')
+    {
+      $JSON = 1;
+    }
+    elsif ($ARGV[$i] eq '--staged')
+    {
+      $STAGED = 1;
+    }
+    elsif ($ARGV[$i] eq '--strict')
+    {
+      $STRICT = 1;
+    }
+        else
+    {
+      push @rest, $ARGV[$i];
+    }
+    $i++;
+  }
+  @ARGV = @rest;
+}
+
+my $command = shift @ARGV;
+if (!defined $command || $command eq '-h' || $command eq '--help' || $command eq 'help')
+{
+  print_usage(shift @ARGV);
+  exit 0;
+}
+
+if ($command eq '--version' || $command eq 'version')
+{
+  if ($JSON)
+  {
+    emit_json({ version => $VERSION });
+  }
+  else
+  {
+    say "wpdcs $VERSION";
+  }
+  exit 0;
+}
+
+## @funcinfo <expand cli paths to source files>
+## @param <paths: array - files or dirs>
+## @return <array of files, recursive, minus excludes>
+## @ex <expand_paths("src") => ["src/main.pl"]>
+sub expand_paths {
+  my (@paths) = @_;
+  if ($STAGED)
+  {
+    return staged_files();
+  }
+  die "usage: supply at least one <path>\n" unless @paths;
+  my $cfg = cli_config();
+  my @exclude = @{$cfg->{exclude_dirs} || []};
+  return WPDCS::Core->collect_files(\@paths, \@exclude);
+}
 
 ## @secinfo <parse command>
 if ($command eq 'parse')
 {
-  my $file = shift @ARGV;
-  die "Usage: wpdcs parse <file>\n" unless $file;
+  my @files = expand_paths(@ARGV);
 
   my $parser = WPDCS::Parser->new();
-  my $tags   = $parser->parse_file($file);
-  $parser->print_tags($tags);
+  if ($JSON)
+  {
+    my %out;
+    $out{$_} = $parser->parse_file($_) for @files;
+    emit_json(\%out);
+  }
+  else
+  {
+    for my $file (@files)
+    {
+      say "== $file ==" if @files > 1;
+      my $tags = $parser->parse_file($file);
+      $parser->print_tags($tags);
+    }
+  }
 }
 
 ## @secinfo <check command>
 elsif ($command eq 'check')
 {
-  my $file = shift @ARGV;
-  die "Usage: wpdcs check <file>\n" unless $file;
+  my @files = expand_paths(@ARGV);
 
-  my $checker = WPDCS::Checker->new();
-  my $result  = $checker->check_file($file);
-  $checker->print_result($result);
+  my $cfg = cli_config();
+  my $checker = WPDCS::Checker->new(
+    strict => $STRICT || $cfg->{strict} ? 1 : 0,
+  );
+  my $exit = 0;
+  my @results;
+  for my $file (@files)
+  {
+    my $result = $checker->check_file($file);
+    push @results, $result;
+    if ($JSON)
+    {
+      $exit = 1 if !$result->{ok};
+    }
+    else
+    {
+      say "== $file ==" if @files > 1;
+      my $code = $checker->print_result($result);
+      $exit = $code if $code != 0;
+    }
+  }
+  emit_json(\@results) if $JSON;
+  exit $exit;
 }
 
 ## @secinfo <init command>
@@ -53,67 +248,183 @@ elsif ($command eq 'init')
 elsif ($command eq 'gen')
 {
   my $subcommand = shift @ARGV;
-  my $file       = shift @ARGV;
-
-  die "Usage: wpdcs gen <header|funcinfo|section> <file> [args...]\n" unless $subcommand && $file;
+  die "$HELP{gen}\n" unless defined $subcommand;
 
   my $gen = WPDCS::Generator->new();
 
   if ($subcommand eq 'header')
   {
-    $gen->generate_header($file);
+    my @files = expand_paths(@ARGV);
+    $gen->generate_header($_) for @files;
   }
   elsif ($subcommand eq 'funcinfo')
   {
-    $gen->generate_funcinfo($file);
+    my @files = expand_paths(@ARGV);
+    $gen->generate_funcinfo($_) for @files;
+  }
+  elsif ($subcommand eq 'test')
+  {
+    die "usage: wpdcs gen test <file>\n" unless @ARGV == 1 && !$STAGED;
+    $gen->generate_test($ARGV[0]);
   }
   else
   {
-    die "Unknown gen subcommand: $subcommand. Try: header, funcinfo\n";
+    die "unknown gen subcommand: $subcommand. try: header, funcinfo, test\n";
   }
 }
 
 ## @secinfo <lint command>
 elsif ($command eq 'lint')
 {
-  my $file = shift @ARGV;
-  die "Usage: wpdcs lint <file>\n" unless $file;
+  my @files = expand_paths(@ARGV);
 
-  my $linter = WPDCS::Linter->new();
-  exit $linter->lint($file);
+  my $cfg = cli_config();
+  my $linter = WPDCS::Linter->new(max_length => $cfg->{max_length} // 120);
+  my $exit = 0;
+  my @results;
+  for my $file (@files)
+  {
+    my $code = $linter->lint($file);
+    $exit = $code if $code != 0;
+    push @results, { file => $file, ok => $code == 0 ? 1 : 0 } if $JSON;
+  }
+  emit_json(\@results) if $JSON;
+  exit $exit;
 }
 
 ## @secinfo <format command>
 elsif ($command eq 'format')
 {
-  my $file = shift @ARGV;
-  die "Usage: wpdcs format <file>\n" unless $file;
+  my @files = expand_paths(@ARGV);
 
-  my $linter = WPDCS::Linter->new();
-  $linter->format($file);
+  my $cfg = cli_config();
+  my $linter = WPDCS::Linter->new(max_length => $cfg->{max_length} // 120);
+  $linter->format($_) for @files;
 }
 
 ## @secinfo <docs command>
 elsif ($command eq 'docs')
 {
-  my $file = shift @ARGV;
-  die "Usage: wpdcs docs <file>\n" unless $file;
+  my @files = expand_paths(@ARGV);
 
   my $gen = WPDCS::Generator->new();
-  $gen->generate_docs($file);
+  $gen->generate_docs($_) for @files;
 }
+
+## @secinfo <test command: doctests>
+elsif ($command eq 'test')
+{
+  my @files = expand_paths(@ARGV);
+
+  my $dt = WPDCS::Doctest->new();
+  my $exit = 0;
+  my @results;
+  for my $file (@files)
+  {
+    if ($file =~ /\.(clj|cljs|cljc)$/)
+    {
+      my $n = scalar(@{$dt->cases($file)});
+      say "skip (clojure doctests need a js runtime): $file ($n cases found)" unless $JSON;
+      push @results, { file => $file, skipped => 1, total => $n } if $JSON;
+      next;
+    }
+    my $res = $dt->run_file($file);
+    push @results, { file => $file, %$res } if $JSON;
+    unless ($JSON)
+    {
+      say "== $file ==" if @files > 1;
+      my $code = $dt->print_result($file, $res);
+      $exit = $code if $code != 0;
+    }
+    else
+    {
+      $exit = 1 if $res->{failed};
+    }
+  }
+  emit_json(\@results) if $JSON;
+  exit $exit;
+}
+
+## @secinfo <stats command>
+elsif ($command eq 'stats')
+{
+  my @files = expand_paths(@ARGV);
+
+  my $parser  = WPDCS::Parser->new();
+  my $checker = WPDCS::Checker->new();
+  my $dt      = WPDCS::Doctest->new();
+
+  my ($tot_tags, $tot_funcs, $tot_doc, $tot_cases) = (0, 0, 0, 0);
+  my @per_file;
+  for my $file (@files)
+  {
+    my $tags = $parser->parse_file($file);
+    my @funcs;
+    if ($file =~ /\.(pl|pm|t|clj|cljs|cljc)$/)
+    {
+      my @lines = WPDCS::Core->read_file($file);
+      my $gen = WPDCS::Generator->new();
+      @funcs = $gen->_collect_funcs(\@lines, $file);
+    }
+    my $cov = $checker->check_coverage($file);
+    my $cases = ($file =~ /\.(pl|pm|t)$/) ? scalar(@{$dt->cases($file, $tags)}) : 0;
+    $tot_tags  += scalar @$tags;
+    $tot_funcs += scalar @funcs;
+    $tot_doc   += $cov->{documented};
+    $tot_cases += $cases;
+    push @per_file, {
+      file       => $file,
+      tags       => scalar(@$tags),
+      funcs      => scalar(@funcs),
+      documented => $cov->{documented},
+      coverage   => $cov->{pct},
+      doctests   => $cases,
+    };
+  }
+  my $summary = {
+    files      => scalar(@files),
+    tags       => $tot_tags,
+    funcs      => $tot_funcs,
+    documented => $tot_doc,
+    coverage   => $tot_funcs ? int(100 * $tot_doc / $tot_funcs) : 100,
+    doctests   => $tot_cases,
+    per_file   => \@per_file,
+  };
+  if ($JSON)
+  {
+    emit_json($summary);
+  }
+  else
+  {
+    say "files:      $summary->{files}";
+    say "tags:       $summary->{tags}";
+    say "functions:  $summary->{funcs} (documented $summary->{documented}, $summary->{coverage}%)";
+    say "doctests:   $summary->{doctests}";
+    for my $pf (@per_file)
+    {
+      printf "  %-40s funcs %2d doc %2d cov %3d%% tags %3d doctests %2d\n",
+        $pf->{file}, $pf->{funcs}, $pf->{documented}, $pf->{coverage}, $pf->{tags}, $pf->{doctests};
+    }
+  }
+}
+
+
+
+
+
+
 
 ## @secinfo <create command>
 elsif ($command eq 'create')
 {
-  my $project_name = shift @ARGV || die "Usage: wpdcs create <project_name>\n";
+  my $project_name = shift @ARGV || die "usage: wpdcs create <project_name>\n";
   my $gen = WPDCS::Generator->new();
   $gen->create_project($project_name);
 }
 
 else
 {
-  say "Unknown command: $command";
-  say "Available: parse, check, init, gen, lint, format, docs, create";
+  say STDERR "unknown command: $command";
+  print_usage();
   exit 1;
 }
