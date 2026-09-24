@@ -1,7 +1,9 @@
 ;; @file    <services/github.cljs>
 ;; @author  <wakaranakattari@gmail.com>
 ;; @info    <github fetch api for dynamic loading repos>
-;; @version <1.3>
+;; @license <gpl 3.0>
+;; @version <2.0.0>
+;; @since   <2026-05-07>
 
 ;; @secstart->@secname <ns>
 (ns bio-site.services.github) ;; @info <ns and file for my bio site>
@@ -9,6 +11,10 @@
 
 ;; @secstart->@secname <fetchrepos>
   ;; @funcinfo <fetch github repos, async, takes two callbacks: on-success (repos) and on-error (err-msg)>
+  ;; @param <on-success: fn - called with filtered repo list>
+  ;; @param <on-error: fn - called with error message>
+  ;; @return <promise - fetch chain>
+  ;; @complexity <o(n) over repos>
 (defn fetch-repos!
   [on-success on-error]
 
@@ -21,7 +27,7 @@
                (let [repos (js->clj data :keywordize-keys true)
                      filtered (filter #(not (:fork %)) repos)]
 
-                ;; @info <if convert to clj map etc is successfully>  
+                ;; @info <if convert to clj map etc is successfully>
                  (on-success filtered))))
 
       ;; @info <if fetch via api || parse to json || convert to clj map is failed>
