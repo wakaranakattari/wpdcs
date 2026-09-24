@@ -1,0 +1,24 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        perl: ['5.34', '5.36', '5.38']
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Perl
+        uses: shogo82148/actions-setup-perl@v1
+        with:
+          perl-version: ${{ matrix.perl }}
+      - name: Unit tests
+        run: prove -Ilib t/
+      - name: CLI smoke tests
+        run: make test
+      - name: Self lint
+        run: perl -Ilib bin/wpdcs lint lib bin/wpdcs
