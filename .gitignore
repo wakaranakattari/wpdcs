@@ -1,3 +1,9 @@
 .clj-condo/
+.clj-kondo/
 .git/
 .lsp/
+*.tar.gz
+wpdcs-dist/
+*.bak
+*.swp
+*~
