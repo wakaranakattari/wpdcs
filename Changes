@@ -1,0 +1,25 @@
+Revision history for WPDCS
+
+2.0.0  2026-09-23
+  - New tag standard v2.0: param, return, throws, ex, ex-fail, see,
+    deprecated, todo, test, complexity (legacy excode-* still parsed)
+  - New commands: test (executable doctests), stats (coverage),
+    gen test (skeleton .t from @ex), all with --json
+  - Recursive file/dir arguments with .wpdcsrc exclude_dirs
+  - gen funcinfo infers @param from Perl signatures, my(@_), Clojure vectors
+  - docs grouped per function with real names, see-links, index via --out
+  - Checker reports unknown/malformed/duplicate tags; Linter validates
+    param format and unknown tags, skips Makefile recipe tabs
+  - House style pass: all comments live inside tags, tag prose is
+    lowercase with no apostrophes, code/paths/emails/versions untouched
+  - Full test suite in t/ (prove), CI workflow, man page, META.json
+
+1.1.0  2026-09-23
+  - Parser handles hyphenated tags, bare values, inline tags, secstart markers
+  - Checker without exit(), Config loader, Core file helpers
+  - Linter checks tabs/CRLF/length/EOF, Makefile-aware format
+  - gen header preserves shebang, funcinfo supports defn + multiline subs
+  - Fixed install-user PERL5LIB path, dist contents, README standard
+
+1.0-SNAP  2026-05-17
+  - Initial toolchain: parse, check, init, create, gen, lint, format, docs

@@ -1,0 +1,42 @@
+{
+   "abstract" : "Enforce code style, run doctests, generate docs for Perl and Clojure",
+   "author" : [
+      "wakaranakattari <wakaranakattari@gmail.com>"
+   ],
+   "dynamic_config" : 0,
+   "generated_by" : "wpdcs 2.0.0",
+   "license" : [
+      "gpl_3_0"
+   ],
+   "meta-spec" : {
+      "url" : "https://metacpan.org/pod/CPAN::Meta::Spec",
+      "version" : 2
+   },
+   "name" : "WPDCS",
+   "no_index" : {
+      "directory" : [
+         "examples",
+         "t"
+      ]
+   },
+   "prereqs" : {
+      "runtime" : {
+         "requires" : {
+            "perl" : "5.035"
+         }
+      },
+      "test" : {
+         "requires" : {
+            "Test::More" : "0"
+         }
+      }
+   },
+   "release_status" : "stable",
+   "resources" : {
+      "repository" : {
+         "type" : "git",
+         "url" : "https://github.com/wakaranakattari/wpdcs"
+      }
+   },
+   "version" : "2.0.0"
+}
