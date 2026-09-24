@@ -1,0 +1,15 @@
+## @info <wpdcs configuration>
+language: perl
+required_tags:
+  - file
+  - author
+  - info
+  - license
+  - version
+  - since
+exclude_dirs:
+  - .git
+  - t
+  - docs
+max_length: 120
+strict: 0
